@@ -3,23 +3,29 @@ import contextlib
 import io
 import traceback
 
-st.title("Remote Python Runner (Streamlit Cloud)")
+st.set_page_config(page_title="Remote Python Runner", layout="wide")
+st.title("🐍 Remote Python Runner (Streamlit Cloud)")
 
 st.write("""
-Run Python code remotely.  
-This app executes your code on Streamlit Cloud, so API calls and requests will work even if your local machine is blocked.
+Run Python code remotely on Streamlit Cloud.  
+You can execute API calls, web requests, and other Python code directly from this app.
 """)
 
+# ----------------- Code input -----------------
 code = st.text_area(
     "Write your Python code here:",
     height=250,
-    placeholder="import requests\nr = requests.get('https://api.github.com')\nprint(r.json())"
+    placeholder=(
+        "# Example:\n"
+        "import requests\n"
+        "r = requests.get('https://api.github.com')\n"
+        "print(r.json())"
+    )
 )
 
-if st.button("Run code"):
+# ----------------- Run button -----------------
+if st.button("▶️ Run code"):
     buffer = io.StringIO()
-
-    # Create isolated execution environments
     global_vars = {}
     local_vars = {}
 
@@ -28,8 +34,18 @@ if st.button("Run code"):
             exec(code, global_vars, local_vars)
 
         output = buffer.getvalue()
-        st.success("Output:")
-        st.code(output if output.strip() else "(no output)")
-    except Exception as e:
-        st.error("Error during execution:")
-        st.code(traceback.format_exc())
+        st.success("✅ Output:")
+        st.code(output if output.strip() else "(no output)", language="python")
+
+        # ----------------- Download output -----------------
+        if output.strip():
+            st.download_button(
+                label="📥 Download Output",
+                data=output,
+                file_name="output.txt",
+                mime="text/plain"
+            )
+
+    except Exception:
+        st.error("❌ Error during execution:")
+        st.code(traceback.format_exc(), language="python")
