@@ -1,10 +1,4 @@
 streamlit
-streamlit-ace
 requests
 beautifulsoup4
 lxml
-pandas
-numpy
-matplotlib
-altair
-builtins
