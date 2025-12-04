@@ -75,35 +75,28 @@ run_button = st.button("▶️ Run Code")
 
 
 # ========= EXECUTION FUNCTION =========
+import builtins
+
 def execute_user_code(code: str):
-    """Executes code with sandbox & returns (stdout, stderr)."""
-
-    if not block_unsafe_imports(code):
-        return ("", "❌ Blocked import detected (os, subprocess, etc.)")
-
+    ...
     stdout_buffer = io.StringIO()
     stderr_buffer = io.StringIO()
 
     global_env = {}
     local_env = {}
 
-    original_open = open
-    __builtins__.open = safe_open_wrapper(original_open)
+    # Patch open()
+    original_open = builtins.open
+    builtins.open = safe_open_wrapper(original_open)
 
     signal.signal(signal.SIGALRM, timeout_handler)
     signal.alarm(custom_timeout)
 
     try:
         with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
-
             if enable_async and ("async def" in code or "await " in code):
-                # Async execution
                 exec(code, global_env, local_env)
-                coro = None
-                for v in local_env.values():
-                    if asyncio.iscoroutine(v):
-                        coro = v
-                        break
+                coro = next((v for v in local_env.values() if asyncio.iscoroutine(v)), None)
                 if coro:
                     asyncio.run(coro)
             else:
@@ -114,9 +107,10 @@ def execute_user_code(code: str):
 
     finally:
         signal.alarm(0)
-        __builtins__.open = original_open
+        builtins.open = original_open  # Restore open()
 
     return (stdout_buffer.getvalue(), stderr_buffer.getvalue())
+
 
 
 # ========= BACKGROUND JOB WRAPPER =========
